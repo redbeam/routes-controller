@@ -41,6 +41,11 @@ func NodePortHandler(clientset *kubernetes.Clientset) cache.SharedIndexInformer 
 			oldService := oldObj.(*v1.Service)
 			newService := newObj.(*v1.Service)
 
+			// Periodic resyncs deliver the same object; don't recreate its forwards.
+			if oldService.ResourceVersion == newService.ResourceVersion {
+				return
+			}
+
 			log.Infof("Service '%s' of type '%s' changed!", newService.GetName(), oldService.Spec.Type)
 
 			if oldService.Spec.Type == v1.ServiceTypeNodePort {
