@@ -113,7 +113,7 @@ func expose(nodePort int32) error {
 
 func unexpose(nodePort int32) error {
 	unexposeRequest := UnexposeRequest{
-		Local: fmt.Sprintf(":%d", nodePort),
+		Local: fmt.Sprintf("%s:%d", localhost, nodePort),
 	}
 	log.Infof("Unexposing port '%s'", unexposeRequest.Local)
 

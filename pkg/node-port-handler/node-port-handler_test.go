@@ -24,10 +24,11 @@ func TestExpose_SendsTokenAndBody(t *testing.T) {
 	}
 }
 
-func TestUnexpose_SendsToken(t *testing.T) {
+func TestUnexpose_SendsTokenAndBody(t *testing.T) {
 	t.Setenv("CRC_REST_API_TOKEN", "test-token")
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assertBearerToken(t, r, "test-token")
+		assertBody(t, r, map[string]string{"Local": "127.0.0.1:30080"})
 		w.WriteHeader(http.StatusOK)
 	}))
 	defer srv.Close()
