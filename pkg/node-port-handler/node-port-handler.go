@@ -32,7 +32,7 @@ func NodePortHandler(clientset *kubernetes.Clientset) cache.SharedIndexInformer 
 			}
 
 			for _, port := range service.Spec.Ports {
-				if err := expose(port.NodePort); err != nil {
+				if err := expose(port); err != nil {
 					log.Error(err)
 				}
 			}
@@ -46,7 +46,7 @@ func NodePortHandler(clientset *kubernetes.Clientset) cache.SharedIndexInformer 
 			if oldService.Spec.Type == v1.ServiceTypeNodePort {
 				log.Debugf("Unexposing previous NodePorts...")
 				for _, port := range oldService.Spec.Ports {
-					if err := unexpose(port.NodePort); err != nil {
+					if err := unexpose(port); err != nil {
 						log.Error(err)
 					}
 				}
@@ -55,7 +55,7 @@ func NodePortHandler(clientset *kubernetes.Clientset) cache.SharedIndexInformer 
 			if newService.Spec.Type == v1.ServiceTypeNodePort {
 				log.Debugf("Exposing current NodePorts...")
 				for _, port := range newService.Spec.Ports {
-					if err := expose(port.NodePort); err != nil {
+					if err := expose(port); err != nil {
 						log.Error(err)
 					}
 				}
@@ -70,7 +70,7 @@ func NodePortHandler(clientset *kubernetes.Clientset) cache.SharedIndexInformer 
 			}
 
 			for _, port := range service.Spec.Ports {
-				if err := unexpose(port.NodePort); err != nil {
+				if err := unexpose(port); err != nil {
 					log.Error(err)
 				}
 			}
@@ -96,10 +96,14 @@ var exposeURL = "http://host/services/forwarder/expose"
 
 var unexposeURL = "http://host/services/forwarder/unexpose"
 
-func expose(nodePort int32) error {
+func expose(port v1.ServicePort) error {
+	if port.Protocol != v1.ProtocolTCP {
+		log.Infof("Skipping NodePort %d: protocol %s is not supported", port.NodePort, port.Protocol)
+		return nil
+	}
 	exposeRequest := ExposeRequest{
-		Local:  fmt.Sprintf("%s:%d", localhost, nodePort),
-		Remote: fmt.Sprintf("%s:%d", vmVirtualIP, nodePort),
+		Local:  fmt.Sprintf("%s:%d", localhost, port.NodePort),
+		Remote: fmt.Sprintf("%s:%d", vmVirtualIP, port.NodePort),
 	}
 	log.Infof("Exposing port (%s -> %s)", exposeRequest.Local, exposeRequest.Remote)
 
@@ -111,9 +115,13 @@ func expose(nodePort int32) error {
 	return routeshandler.PostJSON(exposeURL, bin)
 }
 
-func unexpose(nodePort int32) error {
+func unexpose(port v1.ServicePort) error {
+	if port.Protocol != v1.ProtocolTCP {
+		log.Infof("Skipping NodePort %d: protocol %s is not supported", port.NodePort, port.Protocol)
+		return nil
+	}
 	unexposeRequest := UnexposeRequest{
-		Local: fmt.Sprintf("%s:%d", localhost, nodePort),
+		Local: fmt.Sprintf("%s:%d", localhost, port.NodePort),
 	}
 	log.Infof("Unexposing port '%s'", unexposeRequest.Local)
 
