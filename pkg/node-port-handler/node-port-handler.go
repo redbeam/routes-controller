@@ -1,10 +1,8 @@
 package nodeporthandler
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
-	"net/http"
 	"time"
 
 	routeshandler "github.com/crc-org/routes-controller/pkg/routes-handler"
@@ -110,7 +108,7 @@ func expose(nodePort int32) error {
 		return err
 	}
 
-	return post(exposeURL, bin)
+	return routeshandler.PostJSON(exposeURL, bin)
 }
 
 func unexpose(nodePort int32) error {
@@ -124,22 +122,5 @@ func unexpose(nodePort int32) error {
 		return err
 	}
 
-	return post(unexposeURL, bin)
-}
-
-// post sends body as JSON to url with the crc REST API bearer token.
-func post(url string, body []byte) error {
-	req, err := http.NewRequest(http.MethodPost, url, bytes.NewReader(body))
-	if err != nil {
-		return err
-	}
-	req.Header.Set("Content-Type", "application/json")
-	if tok := routeshandler.HostsAPIToken(); tok != "" {
-		req.Header.Set("Authorization", "Bearer "+tok)
-	}
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return err
-	}
-	return resp.Body.Close()
+	return routeshandler.PostJSON(unexposeURL, bin)
 }

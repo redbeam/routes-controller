@@ -64,8 +64,7 @@ var removeHostURLs = []string{
 	"http://host:9764/hosts/remove",
 }
 
-// HostsAPIToken returns the crc REST API token used as bearer token for crc daemon API requests.
-func HostsAPIToken() string {
+func hostsAPIToken() string {
 	tok := os.Getenv("CRC_REST_API_TOKEN")
 	if tok == "" {
 		log.Warn("CRC_REST_API_TOKEN is not set; crc daemon API requests will be unauthenticated and rejected by current crc")
@@ -73,17 +72,18 @@ func HostsAPIToken() string {
 	return tok
 }
 
-// postJSON sends a POST request with JSON body to url and returns an error on failure or non-2xx status.
-func postJSON(url string, body []byte) error {
+// PostJSON sends a POST request with JSON body and the crc REST API bearer token to url
+// and returns an error on failure or non-2xx status.
+func PostJSON(url string, body []byte) error {
 	req, err := http.NewRequest(http.MethodPost, url, bytes.NewReader(body))
 	if err != nil {
 		return err
 	}
 	req.Header.Set("Content-Type", "application/json")
-	if tok := HostsAPIToken(); tok != "" {
+	if tok := hostsAPIToken(); tok != "" {
 		req.Header.Set("Authorization", "Bearer "+tok)
 	}
-	//nolint:gosec // URL are constants from addHostURLs or removeHostURLs
+	//nolint:gosec // callers pass fixed crc daemon URLs
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return err
@@ -100,7 +100,7 @@ func postJSON(url string, body []byte) error {
 func postJSONFirstSuccess(urls []string, body []byte) error {
 	var errs []error
 	for _, url := range urls {
-		if err := postJSON(url, body); err != nil {
+		if err := PostJSON(url, body); err != nil {
 			errs = append(errs, err)
 			continue
 		}

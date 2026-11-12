@@ -39,6 +39,23 @@ func TestUnexpose_SendsToken(t *testing.T) {
 	}
 }
 
+func TestExposeUnexpose_Non2xxIsError(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusUnauthorized)
+	}))
+	defer srv.Close()
+
+	overrideURL(t, &exposeURL, srv.URL)
+	overrideURL(t, &unexposeURL, srv.URL)
+
+	if err := expose(30080); err == nil {
+		t.Error("expected expose error on 401, got nil")
+	}
+	if err := unexpose(30080); err == nil {
+		t.Error("expected unexpose error on 401, got nil")
+	}
+}
+
 func TestForwarderURLs(t *testing.T) {
 	if exposeURL != "http://host/services/forwarder/expose" {
 		t.Errorf("unexpected exposeURL %q", exposeURL)

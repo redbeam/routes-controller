@@ -166,6 +166,36 @@ func TestUnexpose_BothURLsFail(t *testing.T) {
 	}
 }
 
+func TestPostJSON_SendsBearerToken(t *testing.T) {
+	t.Setenv("CRC_REST_API_TOKEN", "test-token")
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if auth := r.Header.Get("Authorization"); auth != "Bearer test-token" {
+			t.Errorf("expected Authorization %q, got %q", "Bearer test-token", auth)
+		}
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+
+	if err := PostJSON(srv.URL, []byte("[]")); err != nil {
+		t.Fatalf("PostJSON returned unexpected error: %v", err)
+	}
+}
+
+func TestPostJSON_NoTokenSendsNoAuthorizationHeader(t *testing.T) {
+	t.Setenv("CRC_REST_API_TOKEN", "")
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if auth := r.Header.Get("Authorization"); auth != "" {
+			t.Errorf("expected no Authorization header, got %q", auth)
+		}
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+
+	if err := PostJSON(srv.URL, []byte("[]")); err != nil {
+		t.Fatalf("PostJSON returned unexpected error: %v", err)
+	}
+}
+
 func overrideURLs(t *testing.T, target *[]string, urls []string) {
 	t.Helper()
 	orig := *target
